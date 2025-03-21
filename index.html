@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testa PDF-generator</title>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            background-position: center;
+        }
+        #wrapper {
+            width: 600px;
+            height: 800px;
+            background-color: rgb(223, 199, 221);
+            padding: 20px;
+            margin: 50px auto;
+            text-align: center;
+            border: 2px solid black;
+            color: white;
+            
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .cc-button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+      
+    </style>
+</head>
+<body>
+
+    <button id="generate-pdf">Generera PDF</button>
+
+    <div id="wrapper">
+        <h1>Test PDF-innehåll</h1>
+        <p>Detta är en testtext som ska synas i PDF-filen.</p>
+        <img src="test.jpg" alt="Testbild" width="300" height="200">
+    </div>
+
+    <script>
+        function getPDF() {
+            const wrapper = document.getElementById("wrapper");
+            const shareButtons = document.querySelectorAll(".cc-button");
+
+            // Hide share buttons
+            shareButtons.forEach(button => button.style.display = "none");
+
+            // Change text color to black if it is white
+            const allTextElements = wrapper.querySelectorAll("*");
+            allTextElements.forEach(element => {
+                const computedStyle = window.getComputedStyle(element);
+                if (computedStyle.color === "rgb(255, 255, 255)") { 
+                    element.style.color = "black"; 
+                }
+            });
+
+            // Configure PDF options
+            const options = {
+                margin: 1,
+                filename: 'Gavobevis.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 4, useCORS: true }, // Increase scale for better quality
+                jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(options).from(wrapper).save().then(() => {
+                shareButtons.forEach(button => button.style.display = "inline-block");
+            });
+        }
+
+        document.getElementById("generate-pdf").addEventListener("click", getPDF);
+    </script>
+
+</body>
+</html>
