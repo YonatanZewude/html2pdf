@@ -55,36 +55,43 @@
 
     <script>
         function getPDF() {
-            const wrapper = document.getElementById("wrapper");
-            const shareButtons = document.querySelectorAll(".cc-button");
+    const wrapper = document.getElementById("wrapper");
+    const shareButtons = document.querySelectorAll(".cc-button");
 
-            // Hide share buttons
-            shareButtons.forEach(button => button.style.display = "none");
+    shareButtons.forEach(button => button.style.display = "none");
 
-            // Change text color to black if it is white
-            const allTextElements = wrapper.querySelectorAll("*");
-            allTextElements.forEach(element => {
-                const computedStyle = window.getComputedStyle(element);
-                if (computedStyle.color === "rgb(255, 255, 255)") { 
-                    element.style.color = "black"; 
-                }
-            });
+    const allTextElements = wrapper.querySelectorAll("*");
+    const originalColors = new Map(); 
 
-            // Configure PDF options
-            const options = {
-                margin: 1,
-                filename: 'Gavobevis.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 4, useCORS: true }, // Increase scale for better quality
-                jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(options).from(wrapper).save().then(() => {
-                shareButtons.forEach(button => button.style.display = "inline-block");
-            });
+    allTextElements.forEach(element => {
+        const computedStyle = window.getComputedStyle(element);
+        if (computedStyle.color === "rgb(255, 255, 255)") { 
+            originalColors.set(element, element.style.color); 
+            element.style.color = "black"; 
         }
+    });
 
-        document.getElementById("generate-pdf").addEventListener("click", getPDF);
+    // Konfigurera PDF-inställningar
+    const options = {
+        margin: 1,
+        filename: 'Gavobevis.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 4, useCORS: true },
+        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(options).from(wrapper).save().then(() => {
+        // Återställ textfärgerna till originalfärgen efter PDF-generering
+        originalColors.forEach((color, element) => {
+            element.style.color = color;
+        });
+
+        shareButtons.forEach(button => button.style.display = "inline-block");
+    });
+}
+
+document.getElementById("generate-pdf").addEventListener("click", getPDF);
+
     </script>
 
 </body>
