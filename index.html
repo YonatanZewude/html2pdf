@@ -15,11 +15,12 @@
             width: 600px;
             margin: 0 auto;
             padding: 30px;
-            background-color: white;
+            background-color: rgb(218, 214, 214);
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             text-align: center;
+            color: white;
         }
-        #pdf-image {
+        .pdf-image {
             max-width: 100%;
             height: auto;
             display: block;
@@ -43,73 +44,63 @@
         button:hover {
             background-color: #45a049;
         }
-        #status {
-            margin: 15px 0;
-            padding: 12px;
-            border-radius: 4px;
-            display: none;
-            text-align: center;
-        }
-        .error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        .success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
-        .loading {
-            background-color: #fff8e1;
-            color: #f57f17;
+        .no-pdf {
+            /* Inga stilar behövs här - elementen visas normalt på sidan */
         }
     </style>
 </head>
 <body>
-    <button id="generate-pdf">Generera högkvalitets-PDF</button>
-    <div id="status"></div>
+    <button id="generate-pdf" class="no-pdf">Generera högkvalitets-PDF</button>
+    <button class="no-pdf">En annan knapp</button>
+    <div id="status" class="no-pdf"></div>
 
     <div id="wrapper">
         <h1>Professionellt PDF-dokument</h1>
         <p>Detta dokument kommer att genereras med hög kvalitet, både för text och bilder.</p>
-        <img id="pdf-image" src="https://content.adoveodemo.com/1742895485091_fnisslottskrapa.png" alt="Högupplöst bild" width="500">
+        <img class="pdf-image" src="https://content.adoveodemo.com/1742895485091_fnisslottskrapa.png" alt="Högupplöst bild" width="500">
         <p>All text i detta dokument kommer att vara skarp och lättläst, tack vare de optimerade inställningarna för PDF-generering.</p>
     </div>
 
     <script>
-        document.getElementById("generate-pdf").addEventListener("click", generatePDF);
+        const buttons = Array.from(document.getElementsByTagName('button')); 
+        const status = document.getElementById("status");
+        const wrapper = document.getElementById("wrapper");
 
-        async function generatePDF() {
-            const button = document.getElementById("generate-pdf");
-            const status = document.getElementById("status");
-            const wrapper = document.getElementById("wrapper");
-            const img = document.getElementById("pdf-image");
+        document.getElementById("generate-pdf").addEventListener("click", getPDF);
 
-            // Visa laddningsstatus
-            updateStatus(status, "Förbereder högkvalitativ PDF-generering...", "loading");
-            button.disabled = true;
+        async function getPDF() {
+            const images = document.getElementsByTagName('img'); 
+            console.log("Förbereder högkvalitativ PDF-generering...");
+
+            buttons.forEach(button => {
+                button.disabled = true;
+            });
 
             try {
-                // Ladda högkvalitetsbild
-                const originalSrc = img.src;
-                img.src = await fetchImageWithFallback(img.src);
-
-                // Vänta på att bilden laddas
-                await waitForImageLoad(img);
+                // Ladda högkvalitetsbilder
+                const originalSrcs = [];
+                for (let i = 0; i < images.length; i++) {
+                    originalSrcs[i] = images[i].src;
+                    images[i].src = await fetchImageWithFallback(images[i].src);
+                    await waitForImageLoad(images[i]);
+                }
 
                 // Generera PDF
-                updateStatus(status, "Skapar högupplöst PDF...", "loading");
+                console.log("Skapar högupplöst PDF...");
                 await createPDF(wrapper, "hogkvalitets-dokument.pdf", 3, 1.0);
 
-                // Återställ originalbild
-                img.src = originalSrc;
+                // Återställ originalbilder
+                for (let i = 0; i < images.length; i++) {
+                    images[i].src = originalSrcs[i];
+                }
 
-                // Visa framgångsmeddelande
-                updateStatus(status, "Högkvalitativ PDF skapad framgångsrikt!", "success");
+                console.log("Högkvalitativ PDF skapad framgångsrikt!");
             } catch (error) {
                 console.error("Fel vid PDF-generering:", error);
-                updateStatus(status, `Fel: ${error.message}`, "error");
             } finally {
-                button.disabled = false;
+                buttons.forEach(button => {
+                    button.disabled = false;
+                });
             }
         }
 
@@ -143,16 +134,31 @@
                 margin: [15, 15, 15, 15],
                 filename: filename,
                 image: { type: 'jpeg', quality: quality },
-                html2canvas: { scale: scale, useCORS: true },
+                html2canvas: { 
+                    scale: scale, 
+                    useCORS: true,
+                    ignoreElements: (element) => element.classList.contains('no-pdf'),
+                    onclone: (clonedDoc) => {
+                        // Ändra alla textfärger till svart i PDF
+                        clonedDoc.body.querySelectorAll('*').forEach(el => {
+                            const computedColor = getComputedStyle(el).color;
+                            if (computedColor === 'rgb(255, 255, 255)' || 
+                                computedColor === 'white' || 
+                                el.classList.contains('pdf-text-black')) {
+                                el.style.color = '#000000';
+                            }
+                        });
+                        
+                        // Ändra bakgrundsfärg till vit
+                        const wrapper = clonedDoc.getElementById('wrapper');
+                        if (wrapper) {
+                            wrapper.style.backgroundColor = 'white';
+                        }
+                    }
+                },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             await html2pdf().set(options).from(element).save();
-        }
-
-        function updateStatus(statusElement, message, className) {
-            statusElement.style.display = "block";
-            statusElement.className = className;
-            statusElement.textContent = message;
         }
     </script>
 </body>
