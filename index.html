@@ -3,96 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testa PDF-generator</title>
-
-
+    <title>High Quality PDF Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-size: cover;
-            background-position: center;
+            font-family: "Arial", sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
         #wrapper {
             width: 600px;
-            height: 800px;
-            background-color: rgb(223, 199, 221);
-            padding: 20px;
-            margin: 50px auto;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             text-align: center;
-            border: 2px solid black;
-            color: white;
-            
         }
-        button {
+        #pdf-image {
+            max-width: 100%;
+            height: auto;
             display: block;
             margin: 20px auto;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
         }
-        .cc-button {
-            display: inline-block;
+        h1, p {
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
-      
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+            text-align: center;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .loading {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
     </style>
 </head>
 <body>
-
-    <button id="generate-pdf">Generera PDF</button>
+    <button id="generate-pdf">Generera högkvalitets-PDF</button>
+    <div id="status"></div>
 
     <div id="wrapper">
-        <h1>Test PDF-innehåll</h1>
-        <p>Detta är en testtext som ska synas i PDF-filen.</p>
-        <img src="test.jpg" alt="Testbild" width="300" height="200">
+        <h1>Professionellt PDF-dokument</h1>
+        <p>Detta dokument kommer att genereras med hög kvalitet, både för text och bilder.</p>
+        <img id="pdf-image" src="https://content.adoveodemo.com/1742895485091_fnisslottskrapa.png" alt="Högupplöst bild" width="500">
+        <p>All text i detta dokument kommer att vara skarp och lättläst, tack vare de optimerade inställningarna för PDF-generering.</p>
     </div>
 
     <script>
-        function getPDF() {
-    const wrapper = document.getElementById("wrapper");
-    const shareButtons = document.querySelectorAll(".cc-button");
+        document.getElementById("generate-pdf").addEventListener("click", generatePDF);
 
-    shareButtons.forEach(button => button.style.display = "none");
+        async function generatePDF() {
+            const button = document.getElementById("generate-pdf");
+            const status = document.getElementById("status");
+            const wrapper = document.getElementById("wrapper");
+            const img = document.getElementById("pdf-image");
 
-    const allTextElements = wrapper.querySelectorAll("*");
-    const originalColors = new Map(); 
+            // Visa laddningsstatus
+            updateStatus(status, "Förbereder högkvalitativ PDF-generering...", "loading");
+            button.disabled = true;
 
-    allTextElements.forEach(element => {
-        const computedStyle = window.getComputedStyle(element);
-        if (computedStyle.color === "rgb(255, 255, 255)") { 
-            originalColors.set(element, element.style.color); 
-            element.style.color = "black"; 
+            try {
+                // Ladda högkvalitetsbild
+                const originalSrc = img.src;
+                img.src = await fetchImageWithFallback(img.src);
+
+                // Vänta på att bilden laddas
+                await waitForImageLoad(img);
+
+                // Generera PDF
+                updateStatus(status, "Skapar högupplöst PDF...", "loading");
+                await createPDF(wrapper, "hogkvalitets-dokument.pdf", 3, 1.0);
+
+                // Återställ originalbild
+                img.src = originalSrc;
+
+                // Visa framgångsmeddelande
+                updateStatus(status, "Högkvalitativ PDF skapad framgångsrikt!", "success");
+            } catch (error) {
+                console.error("Fel vid PDF-generering:", error);
+                updateStatus(status, `Fel: ${error.message}`, "error");
+            } finally {
+                button.disabled = false;
+            }
         }
-    });
 
-    // Konfigurera PDF-inställningar
-    const options = {
-        margin: 1,
-        filename: 'Gavobevis.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 4, useCORS: true },
-        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    };
+        async function fetchImageWithFallback(imageUrl) {
+            try {
+                const response = await fetch(imageUrl, { mode: 'cors', cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            } catch (error) {
+                console.warn("Direkt hämtning misslyckades, testar proxy...");
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;
+                const proxyResponse = await fetch(proxyUrl);
+                if (!proxyResponse.ok) throw new Error(`Proxyhämtning misslyckades: HTTP ${proxyResponse.status}`);
+                const proxyBlob = await proxyResponse.blob();
+                return URL.createObjectURL(proxyBlob);
+            }
+        }
 
-    html2pdf().set(options).from(wrapper).save().then(() => {
-        // Återställ textfärgerna till originalfärgen efter PDF-generering
-        originalColors.forEach((color, element) => {
-            element.style.color = color;
-        });
+        function waitForImageLoad(img) {
+            return new Promise((resolve, reject) => {
+                if (img.complete && img.naturalWidth !== 0) return resolve();
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error("Bilden kunde inte laddas"));
+                setTimeout(() => reject(new Error("Timeout vid bildladdning")), 20000);
+            });
+        }
 
-        shareButtons.forEach(button => button.style.display = "inline-block");
-    });
-}
+        async function createPDF(element, filename, scale, quality) {
+            const options = {
+                margin: [15, 15, 15, 15],
+                filename: filename,
+                image: { type: 'jpeg', quality: quality },
+                html2canvas: { scale: scale, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            await html2pdf().set(options).from(element).save();
+        }
 
-document.getElementById("generate-pdf").addEventListener("click", getPDF);
-
+        function updateStatus(statusElement, message, className) {
+            statusElement.style.display = "block";
+            statusElement.className = className;
+            statusElement.textContent = message;
+        }
     </script>
-
 </body>
 </html>
